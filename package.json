@@ -1,0 +1,21 @@
+{
+  "name": "paystub-parser",
+  "version": "0.1.0",
+  "description": "Parses and extracts pay data from Pay Stub PDF files",
+  "main": "src/index.ts",
+  "scripts": {
+    "run": "node src/index.ts",
+    "test": "test"
+  },
+  "author": "Martin Orona",
+  "license": "ISC",
+  "dependencies": {
+    "pdf-parse": "^1.1.1",
+    "pdfjs-dist": "^5.4.149"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.11",
+    "@types/pdf-parse": "^1.1.5",
+    "typescript": "^5.2.2"
+  }
+}
