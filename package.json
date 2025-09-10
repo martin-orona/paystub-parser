@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Parses and extracts pay data from Pay Stub PDF files",
   "main": "src/index.ts",
+  "type": "module",
   "scripts": {
     "run": "node src/index.ts",
     "test": "test"
