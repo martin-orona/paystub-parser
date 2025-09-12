@@ -1,7 +1,10 @@
 import { dirname, extname } from 'path/posix';
 import { createDirectoryIfNotExists, deleteFileIfExists, writeFile } from './file.io.ts';
+import type { AppParams, FlatPayData, PayData } from './types.js';
 
-export function generateHtmlTable(payData: object[]) {
+type WriteDataParams = AppParams & { payData: PayData[]; prepareTableData: (data: PayData[]) => FlatPayData[]; };
+
+export function generateHtmlTable(payData: FlatPayData[]): string {
     const html = `<html>
 <head>
 </head>
@@ -45,19 +48,19 @@ export function generateHtmlTable(payData: object[]) {
     }
 }
 
-export async function writeData(options: { directory: string; output: string; verbose: boolean; payData: object; prepareTableData: (data: object) => object[]; }) {
+export async function writeData(options: WriteDataParams) {
     if (options.verbose) {
-        console.log(`Writing data to output file: ${options.output}`);
+        console.log(`Writing data to output file: ${options.outputFile}`);
     }
 
 
-    const { output: outputFile } = options;
+    const { outputFile } = options;
     await deleteFileIfExists(outputFile);
     await createDirectoryIfNotExists(dirname(outputFile));
     await writePayDataToFile(options);
 
-    async function writePayDataToFile(options: { output: string; verbose: boolean; payData: object; prepareTableData: (data: object) => object[]; }) {
-        const { output: outputFile, payData } = options;
+    async function writePayDataToFile(options: WriteDataParams) {
+        const { outputFile, payData } = options;
         const fileExtension = extname(outputFile).toLowerCase();
 
         switch (fileExtension) {
@@ -66,7 +69,7 @@ export async function writeData(options: { directory: string; output: string; ve
                 break;
             case '.xlsx':
             case '.xls':
-                await writeExcel({ ...options, path: outputFile, payData });
+                await writeExcel({ ...options, path: outputFile });
                 break;
             default:
                 throw new Error(`Unsupported output file format: ${fileExtension}`);
@@ -75,7 +78,7 @@ export async function writeData(options: { directory: string; output: string; ve
 
 }
 
-export async function writeExcel(options: { path: string; payData: object; prepareTableData: (data: object) => object[]; }) {
+export async function writeExcel(options: WriteDataParams & { path: string; }) {
     const { path, payData } = options;
     const tableData = options.prepareTableData(payData);
     const htmlContent = generateHtmlTable(tableData);

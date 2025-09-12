@@ -1,12 +1,16 @@
 import { readFile } from 'fs/promises';
 import pdfParse from 'pdf-parse';
+import { degrees, PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import type { AppParams, PayData } from './types.js';
 
-export async function extractData(options: { files: Array<string>; outputFile: string | undefined; verbose: boolean; extractPayData: (parsedData: any) => Promise<any>; }) {
+export type ExtractDataParams = AppParams & { files: Array<string>; extractPayData: (parsedData: any) => Promise<PayData>; };
+
+export async function extractData(options: ExtractDataParams): Promise<PayData[]> {
     if (options.verbose) {
         console.log(`Extracting data from ${options.files.length} files.`);
     }
 
-    const result: any[] = [];
+    const result: PayData[] = [];
 
     for (const file of options.files) {
         const fileResult = await extract({ ...options, file });
@@ -15,7 +19,7 @@ export async function extractData(options: { files: Array<string>; outputFile: s
 
     return result;
 
-    async function extract(options: { file: string; verbose: boolean; extractPayData: (parsedData: any) => Promise<any>; }) {
+    async function extract(options: ExtractDataParams & { file: string; }): Promise<PayData> {
         const file = options.file;
 
         if (options.verbose) {
@@ -64,17 +68,23 @@ export async function extractData(options: { files: Array<string>; outputFile: s
     }
 }
 
-export async function parsePdf(options: { file: string; verbose: boolean; toParse: Buffer; }) {
+export async function parsePdf(options: ExtractDataParams & { toParse: Buffer; }) {
     try {
-        const data = await pdfParse(options.toParse);
+        const data = await parse_pdf_parse(options.toParse);
 
         if (options.verbose) {
-            console.log(`Successfully parsed PDF content from file: ${options.file}`);
+            console.log(`Successfully parsed PDF content from file: ${options.inputFile}`);
         }
 
         return data;
     } catch (error) {
-        console.error(`Error parsing PDF data from file: ${options.file}`, error);
+        console.error(`Error parsing PDF data from file: ${options.inputFile}`, error);
         throw error;
+    }
+
+
+    async function parse_pdf_parse(toParse: Buffer) {
+        const data = await pdfParse(options.toParse);
+        return data;
     }
 }
