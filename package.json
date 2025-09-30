@@ -6,18 +6,26 @@
   "type": "module",
   "scripts": {
     "run": "node src/index.ts",
-    "test": "test"
+    "test": "test",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
+    "lint": "eslint src --ext .ts,.tsx --fix"
   },
   "author": "Martin Orona",
   "license": "ISC",
   "dependencies": {
-    "pdf-lib": "^1.17.1",
     "pdf-parse": "^1.1.1",
     "pdfjs-dist": "^5.4.149"
   },
   "devDependencies": {
     "@types/node": "^20.19.11",
     "@types/pdf-parse": "^1.1.5",
+    "@typescript-eslint/eslint-plugin": "^8.44.0",
+    "@typescript-eslint/parser": "^8.44.0",
+    "eslint": "^9.35.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "prettier": "^3.6.2",
     "typescript": "^5.9.2"
   }
 }
