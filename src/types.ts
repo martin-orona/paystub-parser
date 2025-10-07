@@ -1,6 +1,5 @@
-// import { TextItem, TextMarkedContent } from 'pdfjs-dist/types/src/display/api';
-
-export type { TextItem, TextMarkedContent } from 'pdfjs-dist/types/src/display/api';
+import type { TextItem, TextMarkedContent } from 'pdfjs-dist/types/src/display/api.d.ts';
+export type { TextItem, TextMarkedContent };
 
 export type PdfParserType = 'pdf-parse' | 'pdfjs';
 export type PayDataParserType =
@@ -19,6 +18,8 @@ export interface UIParams {
   output: string;
   verbose: boolean;
 }
+export type UIParamKeys = keyof UIParams;
+export type UIParamValueTypes = UIParams[UIParamKeys];
 
 export type AppParams = {
   directory: string;

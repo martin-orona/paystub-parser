@@ -7,7 +7,7 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch Program",
+      "name": "Process Paystubs",
       "skipFiles": ["<node_internals>/**"],
             "program": "${workspaceFolder}/src/index.ts",
             "args": [
@@ -18,6 +18,11 @@
                 "--file-pattern-flags",
         "im",
         // "--pdf-parser-type",
+        // "pdf-parse",
+        // "pdfjs",
+        // "--pay-data-parser-type",
+        // "position-index",
+        // "regex",
         "--verbose"
             ],
       "outFiles": ["${workspaceFolder}/**/*.js"]
