@@ -15,6 +15,7 @@ export interface UIParams {
   'file-pattern-flags': string;
   'pdf-parser-type': string;
   'pay-data-parser-type': string;
+  'pay-data-regex-parsing-rules': string;
   output: string;
   verbose: boolean;
 }
@@ -28,9 +29,20 @@ export type AppParams = {
   inputFilePatternFlags?: string;
   pdfParserType: PdfParserType;
   payDataParserType: PayDataParserType;
+  payDataRegexParsingRules?: JsonLiteral | FilePath;
   outputFile: string;
   verbose: boolean;
 };
+
+export type StringDictionary = { [key: string]: string };
+
+export function isStringDictionary(candidate: any): candidate is StringDictionary {
+  return candidate && typeof candidate === 'object' && !Array.isArray(candidate);
+}
+
+export type JsonLiteral = string;
+
+export type FilePath = string;
 
 export type PayData = {
   check: {

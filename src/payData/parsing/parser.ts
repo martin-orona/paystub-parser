@@ -91,7 +91,7 @@ async function extractData(options: ExtractDataParams): Promise<PayData[]> {
 
     let payData;
     try {
-      payData = await options.extractPayData(pdfData);
+      payData = await options.extractPayData({ ...options, parsedPdfData: pdfData });
 
       if (options.verbose) {
         console.log(`Extracted pay data for file: ${file}`);

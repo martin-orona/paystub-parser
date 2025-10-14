@@ -1,0 +1,174 @@
+{
+  "variables": {
+    "MoneyValue": "\\-?\\b\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2}){0,1}\\b",
+    "DecimalNumberValue": "\\-?\\b\\d+(?:\\.\\d{2,4}\\b)?",
+    "LongDateValue": "\\b\\w+ \\d{1,2}, \\d{4}\\b",
+    "LineFieldSeparator": " \\| ",
+    "AnyText": ".*?",
+    "BeginContent": "(?<doc_header>Non Negotiable - This is not a check - Non Negotiable.*)",
+    "BeginTable_MetaTable": "Earnings Statement",
+    "BeginTable_EarningsTable": {
+      "join_string": "{{LineFieldSeparator}}",
+      "values": ["Earnings", "Rate", "Hours", "Amount", "YTD"]
+    },
+    "BeginTable_TaxesTable": {
+      "join_string": "{{LineFieldSeparator}}",
+      "values": ["Taxes", "Amount", "YTD"]
+    },
+    "BeginTable_DeductionsTable": {
+      "join_string": "{{LineFieldSeparator}}",
+      "values": ["Deductions", "Amount", "YTD"]
+    },
+    "BeginTable_DepositsTable": {
+      "join_string": "{{LineFieldSeparator}}",
+      "values": ["Direct Deposits", "Type", "Account", "Amount"]
+    },
+    "BeginTable_TimeOffTable": {
+      "join_string": "{{AnyText}}",
+      "values": ["Time Off", "Available", "to Use", "Plan Year", "Used"]
+    }
+  },
+  "rules": {
+    "check": {
+      "tableHeader": "{{BeginTable_MetaTable}}",
+      "nextTableHeader": "{{BeginTable_TaxesTable}}",
+      "find": {
+        "checkNumber": "checkNumber",
+        "checkDate": "checkDate",
+        "payPeriodStart": "payPeriodStart",
+        "payPeriodEnd": "payPeriodEnd",
+        "salary": {
+          "group": "salary",
+          "defaultValue": ""
+        },
+        "netPay": "netPay",
+        "fedTaxIncome": "fedTaxIncome",
+        "hoursWorked": "hoursWorked"
+      },
+      "find_pattern": {
+        "join_string": "{{AnyText}}",
+        "values": [
+          ["Voucher Number", "(?<checkNumber>\\w+)"],
+          ["Net Pay", "(?<netPay>{{MoneyValue}})"],
+          ["Total Hours Worked", "(?<hoursWorked>{{DecimalNumberValue}})"],
+          ["Fed Taxable Income", "(?<fedTaxIncome>{{MoneyValue}})"],
+          ["Check Date", "(?<checkDate>{{LongDateValue}})"],
+          ["Period Beginning", "(?<payPeriodStart>{{LongDateValue}})"],
+          {
+            "join_string": "",
+            "values": ["Salary", "{{LineFieldSeparator}}", "\\$?", "(?<salary>{{MoneyValue}}|)"]
+          },
+          ["Period Ending", "(?<payPeriodEnd>{{LongDateValue}})"]
+        ]
+      }
+    },
+
+    "grossEarnings": {
+      "tableHeader": "{{BeginTable_EarningsTable}}",
+      "nextTableHeader": "{{BeginTable_DeductionsTable}}",
+      "find": {
+        "hours": "hours",
+        "period": "period",
+        "ytd": "ytd",
+        "regularRate": {
+          "group": "regular_rate",
+          "defaultValue": "",
+          "pattern": {
+            "join_string": "",
+            "values": [
+              "regular",
+              "{{LineFieldSeparator}}",
+              "(?<regular_rate>",
+              "{{DecimalNumberValue}}",
+              ")",
+              "{{LineFieldSeparator}}"
+            ]
+          }
+        }
+      },
+      "find_pattern": {
+        "join_string": "",
+        "values": [
+          ["^(?:", "Gross Earnings", "{{LineFieldSeparator}}", ")?"],
+          [
+            ["(?<hours>", "{{DecimalNumberValue}}", ")"],
+            "{{LineFieldSeparator}}",
+            ["(?<period>", "{{MoneyValue}}", ")"],
+            "{{LineFieldSeparator}}",
+            ["(?<ytd>", "{{MoneyValue}}", ")"]
+          ]
+        ]
+      }
+    },
+
+    "taxes": {
+      "tableHeader": "{{BeginTable_TaxesTable}}",
+      "nextTableHeader": "{{BeginTable_EarningsTable}}",
+      "find": {
+        "period": "period",
+        "ytd": "ytd"
+      },
+      "find_pattern": {
+        "join_string": "",
+        "values": [
+          "^",
+          ["(?:", "Taxes", "{{LineFieldSeparator}}", ")?"],
+          [["(?<period>", "{{MoneyValue}}", ")"], "{{LineFieldSeparator}}", ["(?<ytd>", "{{MoneyValue}}", ")"]]
+        ]
+      }
+    },
+
+    "deductions": {
+      "tableHeader": "{{BeginTable_DeductionsTable}}",
+      "nextTableHeader": "{{BeginTable_DepositsTable}}",
+      "find": {
+        "period": { "group": "period", "defaultValue": "" },
+        "ytd": {
+          "group": "ytd",
+          "alternateGroup": ["ytd_only", "no_deductions"]
+        }
+      },
+      "find_pattern": {
+        "join_string": "",
+        "values": [
+          "(?:",
+          [
+            "Deductions",
+            "{{LineFieldSeparator}}",
+            "(?<period>{{MoneyValue}})",
+            "{{LineFieldSeparator}}",
+            "(?<ytd>{{MoneyValue}})"
+          ],
+          "|",
+          "^(?<ytd_only>{{MoneyValue}})",
+          "|",
+          "No Deductions(?<no_deductions>\\W|)",
+          ")"
+        ]
+      }
+    },
+
+    "deposits": {
+      "tableHeader": "{{BeginTable_DepositsTable}}",
+      "nextTableHeader": "{{BeginTable_TimeOffTable}}",
+      "find": {
+        "total": {
+          "group": "deposited",
+          "alternateGroup": "no_deposits",
+          "pattern": {
+            "join_string": "",
+            "values": [
+              "(?:",
+              "No Direct Deposits",
+              "(?<no_deposits>\\W|)",
+              "|",
+              ["^(?:", "Total Direct Deposits", "{{LineFieldSeparator}}", ")?", "(?<deposited>{{MoneyValue}})"],
+              ")"
+            ]
+          },
+          "trim": true
+        }
+      }
+    }
+  }
+}

@@ -23,6 +23,8 @@
         // "--pay-data-parser-type",
         // "position-index",
         // "regex",
+        "--pay-data-regex-parsing-rules",
+        "src/regex.rules.json",
         "--verbose"
             ],
       "outFiles": ["${workspaceFolder}/**/*.js"]

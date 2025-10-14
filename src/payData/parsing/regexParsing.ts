@@ -1,9 +1,213 @@
-import type { PayData } from '../../types.ts';
+import { file } from '../../io/file.io.ts';
+import { isStringDictionary, type AppParams, type PayData, type StringDictionary } from '../../types.ts';
+import { handleError } from '../../utilities/errors.ts';
 import { isAString } from '../../utilities/utilities.ts';
 import { TextLineElementSeparator } from './constants.ts';
 
-export function extractPayData_regex(parsedData: any): PayData {
-  const content = parsedData.text;
+export async function extractPayData_regex(options: AppParams & { parsedPdfData: any }): Promise<PayData> {
+  return await extractPayData_regex_parsed_rules(options);
+}
+
+async function extractPayData_regex_parsed_rules(options: AppParams & { parsedPdfData: any }): Promise<PayData> {
+  const content = options.parsedPdfData.text;
+  const payData = {} as PayData;
+
+  const parsingRules = await getParsingRules(options.payDataRegexParsingRules);
+  const rules = parsingRules.rules;
+
+  payData.check = extractData({ ...rules.check, content }) as {
+    checkNumber: string;
+    checkDate: string;
+    payPeriodStart: string;
+    payPeriodEnd: string;
+    salary: string;
+    netPay: string;
+    fedTaxIncome: string;
+    hoursWorked: string;
+  };
+
+  payData.grossEarnings = extractData({ ...rules.grossEarnings, content }) as {
+    hours: string;
+    period: string;
+    ytd: string;
+    regularRate: string;
+  };
+
+  payData.taxes = extractData({ ...rules.taxes, content }) as { period: string; ytd: string };
+
+  payData.deductions = extractData({ ...rules.deductions, content }) as { period: string; ytd: string };
+
+  payData.deposits = extractData({ ...rules.deposits, content }) as { total: string };
+
+  return payData;
+}
+
+async function getParsingRules(rules: string | undefined): Promise<any> {
+  const parsedRules = await loadParsingRules(rules);
+
+  // do value replacements
+  replaceMarkers({ values: parsedRules.variables, replacements: parsedRules.variables });
+  buildRulesRegexPatterns({ values: parsedRules.variables });
+  replaceMarkers({ values: parsedRules.rules, replacements: parsedRules.variables });
+
+  return parsedRules;
+}
+
+function buildRulesRegexes({
+  values,
+  replacements,
+}: {
+  values: string[] | StringDictionary;
+  replacements: { [key: string]: string };
+}): any {
+  // test whether values is an object
+  // test whether values has properties tableHeader, nextTableHeader (optional), and valuePattern
+  if (typeof values === typeof Object && 'tableHeader' in values && 'valuePattern' in values) {
+    // buildRulesRegexPatterns({ values, replacements });
+    // buildRulesRegex();
+  }
+  //   function buildRegex({
+  //   tableHeader,
+  //   valuePattern,
+  //   nextTableHeader = undefined,
+  // }: {
+  //   tableHeader: string;
+  //   valuePattern: RegexValuePattern | any[];
+  //   nextTableHeader?: string;
+  // }) {
+  //   const pattern = buildRegexPattern({
+}
+
+function buildRulesRegexPatterns({ values }: { values: StringDictionary }): any {
+  for (const [key, value] of Object.entries(values)) {
+    if (isAString(value)) {
+      continue;
+    }
+
+    values[key] = buildRegexPattern(value);
+  }
+
+  return values;
+}
+
+function replaceMarkers({
+  values,
+  replacements,
+}: {
+  values: string[] | StringDictionary;
+  replacements: { [key: string]: string };
+}): any {
+  if (Array.isArray(values)) {
+    return replaceMarkersInArray({ values, replacements });
+  }
+
+  if (isStringDictionary(values)) {
+    return replaceMarkersInDictionary({ values, replacements });
+  }
+
+  throw new Error(
+    `Error. Failed to replace regex search value replacement markers. Value provided is not a string, array, or dictionary. value:[${JSON.stringify(values)}]`
+  );
+}
+
+function replaceMarkersInArray({
+  values,
+  replacements,
+}: {
+  values: string[];
+  replacements: { [key: string]: string };
+}): string[] {
+  for (let i = 0; i < values.length; i++) {
+    const item = values[i];
+    if (isAString(item)) {
+      values[i] = getValueWithMarkersReplaced({ value: item as string, replacements });
+    } else {
+      replaceMarkers({ values: item as unknown as StringDictionary, replacements });
+    }
+  }
+
+  return values;
+}
+
+function replaceMarkersInDictionary({
+  values,
+  replacements,
+}: {
+  values: StringDictionary;
+  replacements: { [key: string]: string };
+}): StringDictionary {
+  for (const [key, value] of Object.entries(values)) {
+    if (isAString(value)) {
+      values[key] = getValueWithMarkersReplaced({ value: value as string, replacements });
+    } else if (Array.isArray(value) || isStringDictionary(value)) {
+      replaceMarkers({ values: value, replacements });
+    }
+  }
+  return values;
+}
+
+function getValueWithMarkersReplaced({
+  value,
+  replacements,
+}: {
+  value: string;
+  replacements: { [key: string]: string };
+}): string {
+  const regex = /(?<marker>{{(?<token>\w+)}})/gims;
+  const matches = Array.from(value.matchAll(regex));
+  if (matches?.length > 0) {
+    let result = value;
+    for (const match of matches) {
+      if (groupWasMatched({ group: 'token', match })) {
+        const token = match?.groups?.token as string;
+        if (replacements[token]) {
+          result = result.replace(match?.groups?.marker as string, replacements[token]);
+        }
+      }
+    }
+    return result;
+  } else {
+    return value;
+  }
+}
+
+function hasAReplacementMarker(value: string): boolean {
+  return /\{\{(\w+)\}\}/.test(value);
+}
+
+async function loadParsingRules(rules: string | undefined): Promise<any> {
+  if (!rules?.trim() || !isAString(rules)) {
+    throw new Error('Cannot parse pay data. No parsing rules provided.');
+  }
+
+  let rulesToParse = rules;
+
+  const rulesFilePath = rules;
+  if (await file.exists(rulesFilePath)) {
+    try {
+      const ruleFileContent = (await file.read(rulesFilePath)) as unknown;
+      rulesToParse = ruleFileContent?.toString() as string;
+    } catch (error) {
+      throw handleError({
+        error,
+        buildMessage: message => `Error reading parsing rules. file:[${rulesFilePath}] reason:${message}`,
+      });
+    }
+  }
+
+  try {
+    const parsedRules = JSON.parse(rulesToParse);
+    return parsedRules;
+  } catch (error) {
+    throw handleError({
+      error,
+      buildMessage: message => `Error parsing JSON from rules. file:[${rulesFilePath}] reason:${message}`,
+    });
+  }
+}
+
+function extractPayData_regex_hard_coded_rules(options: AppParams & { parsedData: any }): PayData {
+  const content = options.parsedData.text;
   const payData = {} as PayData;
 
   payData.check = extractData({
@@ -253,25 +457,6 @@ function buildRegex({
 
   return new RegExp(pattern, 'ism');
 
-  // function normalizeRegexPattern(pattern: any, join_type = 'any'): RegexValuePattern {
-  //   if (typeof pattern === 'string') {
-  //     return pattern;
-  //   }
-
-  //   if (Array.isArray(pattern)) {
-  //     return {
-  //       join_type,
-  //       values: pattern.map(pattern => normalizeRegexPattern(pattern)),
-  //     };
-  //   }
-
-  //   if (typeof pattern === 'object' && pattern !== null && Array.isArray(pattern.values)) {
-  //     return pattern;
-  //   }
-
-  //   throw new Error("Invalid valuePattern parameter format, don't know how to handle it.");
-  // }
-
   function buildValuePatterns(valuePattern: RegexValuePattern): string {
     if (typeof valuePattern === 'string') {
       return valuePattern;
@@ -310,7 +495,6 @@ function buildRegexPattern(options: RegexValuePattern | RegexValuePattern[]): st
     return options;
   }
 
-  // const { values, join_string, join_type } = options;
   let values: RegexValuePattern[] = [],
     join_string = undefined,
     join_type = undefined;
@@ -323,9 +507,8 @@ function buildRegexPattern(options: RegexValuePattern | RegexValuePattern[]): st
 
   const patterns: string[] = [];
   let sourcePatterns: RegexCustomPattern | (string | RegexCustomPattern)[] = [];
-  // if (!Array.isArray(pattern)) {
+
   for (const element of values) {
-    // check if element is string or RegexCustomPattern
     if (typeof element === 'string') {
       patterns.push(element);
       continue;
@@ -342,15 +525,11 @@ function buildRegexPattern(options: RegexValuePattern | RegexValuePattern[]): st
     const builtPatterns = buildRegexPattern(source);
 
     patterns.push(builtPatterns);
-
-    // const patterns = values.map(item => buildRegexPattern({ values: item }));
   }
-  // const patterns = values.map(item => buildRegexPattern({ values: item }));
+
   const joiner = getJoiner(values, join_string, join_type);
   const joined = patterns.join(joiner);
   return joined;
-  // }
-  throw new Error("Invalid pattern parameter format, don't know how to handle it.");
 
   function getJoiner(pattern: string | any[], join_string?: string, join_type?: RegexElementJoinType): string {
     if (join_string != undefined) {
@@ -425,7 +604,7 @@ function extractData({
       regex: new RegExp(regexpattern || '', 'ism'),
     });
 
-    result[key] = single.trim ? value.trim() : value;
+    result[key] = single.trim ? value?.trim() : value;
   }
 
   return result;
@@ -511,14 +690,14 @@ function findValue({
     return { found: false };
   }
 
-  if (groupWasMatched(match, primaryGroup)) {
+  if (groupWasMatched({ group: primaryGroup, match })) {
     return { found: true, value: match.groups?.[primaryGroup] };
   } else if (alternateGroup) {
-    if (isAString(alternateGroup) && groupWasMatched(match, alternateGroup as string)) {
+    if (isAString(alternateGroup) && groupWasMatched({ group: alternateGroup as string, match })) {
       return { found: true, value: match.groups?.[alternateGroup as string] };
     } else if (Array.isArray(alternateGroup)) {
       for (const group of alternateGroup) {
-        if (groupWasMatched(match, group)) {
+        if (groupWasMatched({ group, match })) {
           return { found: true, value: match.groups?.[group] };
         }
       }
@@ -530,7 +709,7 @@ function findValue({
   return { found: false };
 }
 
-function groupWasMatched(match: RegExpMatchArray, group: string): boolean {
+function groupWasMatched({ group, match }: { match: RegExpMatchArray; group: string }): boolean {
   if (!match) {
     return false;
   }

@@ -8,7 +8,7 @@ export function parseArguments(): AppParams {
   return appArgs;
 }
 
-function getArgs() {
+function getArgs(): UIParams {
   const { values: ui_params }: { values: UIParams } = parseArgs({
     options: {
       directory: {
@@ -21,6 +21,7 @@ function getArgs() {
       'file-pattern-flags': { type: 'string', default: 'im' },
       'pdf-parser-type': { type: 'string', default: 'pdf-parse' },
       'pay-data-parser-type': { type: 'string', default: 'regex' },
+      'pay-data-regex-parsing-rules': { type: 'string', default: '' },
       // output: { type: 'string', short: 'o', default: 'output.json' },
       output: { type: 'string', short: 'o', default: 'output.xls' },
       verbose: { type: 'boolean', short: 'v', default: false },
@@ -31,8 +32,23 @@ function getArgs() {
 
 function validateArgs(args: UIParams) {
   validateValueInList(args, 'pdf-parser-type', ['pdf-parse', 'pdfjs']);
-  // TODO: add other validations for multiple choice parameters
+  validateValueInList(args, 'pay-data-parser-type', ['regex', 'position-index']);
+  validateRegexParserRules(args);
   return true;
+
+  function validateRegexParserRules(args: UIParams): boolean {
+    if (args['pay-data-parser-type'] === 'regex') {
+      if (
+        typeof args['pay-data-regex-parsing-rules'] !== 'string' ||
+        args['pay-data-regex-parsing-rules'].trim().length === 0
+      ) {
+        throw new Error(
+          `When using --pay-data-parser-type=regex, you must provide a valid patterns or a path to a file that contains valid patterns for the regex parsing rules in parameter --pay-data-regex-parsing-rules.`
+        );
+      }
+    }
+    return true;
+  }
 
   function validateValueInList(args: UIParams, key: UIParamKeys, valid: readonly UIParamValueTypes[]) {
     const value = args[key];
@@ -52,6 +68,7 @@ function getAppArgs(uiArgs: UIParams): AppParams {
     inputFilePatternFlags: uiArgs['file-pattern-flags'] || undefined,
     pdfParserType: uiArgs['pdf-parser-type'] as PdfParserType,
     payDataParserType: uiArgs['pay-data-parser-type'] as PayDataParserType,
+    payDataRegexParsingRules: uiArgs['pay-data-regex-parsing-rules'] || undefined,
     outputFile: uiArgs.output,
     verbose: uiArgs.verbose,
   };
