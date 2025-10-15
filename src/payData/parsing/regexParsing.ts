@@ -670,7 +670,7 @@ function findData({
     return '';
   }
 
-  throw new Error(`Unable to extract pay data. group:[${primaryGroup}] regex:[${regex}]`);
+  throw new Error(`Unable to extract pay data. group:[${primaryGroup}] regex:[${regex}] content:[${content}]`);
 }
 
 function findValue({

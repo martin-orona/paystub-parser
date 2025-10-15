@@ -20,7 +20,10 @@ import { TextLineElementSeparator } from './constants.ts';
 
 // export const TextLineSeparator = '\n||';
 export const TextLineSeparator = '\n';
-export type ExtractDataParams = AppParams & { files: Array<string>; extractPayData: (parsedData: any) => PayData };
+export type ExtractDataParams = AppParams & {
+  files: Array<string>;
+  extractPayData: (parsedData: any) => Promise<PayData>;
+};
 
 export async function extractPayData(options: AppParams & { files: Array<string> }) {
   if (options.verbose) {
@@ -262,12 +265,13 @@ async function parsePdf(options: ExtractDataParams & { toParse: Buffer }) {
   // }
 }
 
-function getPayDataExtractor(options: AppParams): (parsedData: any) => PayData {
+function getPayDataExtractor(options: AppParams): (parsedData: any) => Promise<PayData> {
   switch (options.payDataParserType) {
     case 'regex':
       return extractPayData_regex;
     case 'position-index':
-      return extractPayData_positionIndex;
+      // Wrap the sync function in a Promise to match the async signature
+      return async (parsedData: any) => extractPayData_positionIndex(parsedData);
     default:
       throw new Error(`Unknown pay data parser type: ${options.payDataParserType}`);
   }
