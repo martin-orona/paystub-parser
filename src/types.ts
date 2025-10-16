@@ -4,9 +4,7 @@ export type { TextItem, TextMarkedContent };
 export type PdfParserType = 'pdf-parse' | 'pdfjs';
 export type PayDataParserType =
   /** Use regular expressions to parse text pay data. All the text in the document is searched as one big string, with each text element in the same row/line being merged together with no spaces to separate them. */
-  | 'regex'
-  /** use text element position withint the document to parse pay data. */
-  | 'position-index';
+  'regex';
 
 export interface UIParams {
   directory: string;
@@ -24,12 +22,12 @@ export type UIParamValueTypes = UIParams[UIParamKeys];
 
 export type AppParams = {
   directory: string;
-  inputFile?: string;
-  inputFilePattern?: string;
-  inputFilePatternFlags?: string;
+  inputFile?: string | undefined;
+  inputFilePattern?: string | undefined;
+  inputFilePatternFlags?: string | undefined;
   pdfParserType: PdfParserType;
   payDataParserType: PayDataParserType;
-  payDataRegexParsingRules?: JsonLiteral | FilePath;
+  payDataRegexParsingRules?: JsonLiteral | FilePath | undefined;
   outputFile: string;
   verbose: boolean;
 };

@@ -1,4 +1,4 @@
-import type { FlatPayData, PayData } from '../../types';
+import type { FlatPayData, PayData } from '../../types.ts';
 
 export function generateHtmlTable(payData: PayData[]): string {
   const tableData = prepareTableData(payData);
@@ -56,14 +56,13 @@ function prepareTableData(payData: PayData[]): FlatPayData[] {
     .sort((a, b) => {
       const dateA = new Date(a['Check Date']);
       const dateB = new Date(b['Check Date']);
-      // sort dates in descending order
+      // sort by date in descending order
       return dateB.getTime() - dateA.getTime();
     });
   return result;
 }
 
 function getFlatPayData(payData: PayData): FlatPayData {
-  // If payData is a single object, flatten it and return the flat object
   const flatData: FlatPayData = {
     'Check Number': payData['check']?.['checkNumber'] || '',
     'Check Date': payData['check']?.['checkDate'] || '',

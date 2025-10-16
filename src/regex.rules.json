@@ -5,7 +5,7 @@
     "LongDateValue": "\\b\\w+ \\d{1,2}, \\d{4}\\b",
     "LineFieldSeparator": " \\| ",
     "AnyText": ".*?",
-    "BeginContent": "(?<doc_header>Non Negotiable - This is not a check - Non Negotiable.*)",
+    "PayDataStartMarker": "(?<doc_header>Non Negotiable - This is not a check - Non Negotiable.*?)",
     "BeginTable_MetaTable": "Earnings Statement",
     "BeginTable_EarningsTable": {
       "join_string": "{{LineFieldSeparator}}",

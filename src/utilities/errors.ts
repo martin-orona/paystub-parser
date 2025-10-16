@@ -11,6 +11,7 @@ export function handleError({
 
   if (error instanceof Error) {
     message = buildMessage(error.message);
+    error.message = message;
     err = error;
   } else {
     message = buildMessage(String(error));

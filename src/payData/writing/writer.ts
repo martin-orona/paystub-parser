@@ -1,16 +1,10 @@
 import { directory, file, path } from '../../io/file.io.ts';
-import type { AppParams, FlatPayData, PayData } from '../../types.js';
+import type { AppParams, PayData } from '../../types.js';
 import { generateHtmlTable } from './generate.html.ts';
 
 type WriteDataParams = AppParams & { payData: PayData[] /* prepareTableData: (data: PayData[]) => FlatPayData[] */ };
 
-export async function writePayData(
-  options: WriteDataParams
-  // AppParams & {
-  //   payData: PayData[];
-  //   // prepareTableData: (data: PayData[]) => FlatPayData[];
-  // }
-) {
+export async function writePayData(options: WriteDataParams) {
   if (options.verbose) {
     console.log(`Writing out pay data`);
   }

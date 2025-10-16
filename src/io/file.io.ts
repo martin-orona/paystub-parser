@@ -9,9 +9,10 @@ export const path = {
   getFileName: basename,
   hasDirectory: pathHasDirectory,
 };
+
 export const directory = { getChildren: readdir, create: createDirectoryIfNotExists };
+
 export const file = { read: readFile, exists: fileExists, delete: deleteFileIfExists, write: fs_writeFile };
-// export { fs_writeFile as writeFile };
 
 async function createDirectoryIfNotExists(path: string): Promise<void> {
   const exists = await directoryExists(path);

@@ -1,8 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { extractPayData_regex } from './regexParsing';
 import { AppParams } from '../../types';
 
-describe('regex parsing pay data', () => {
+describe('extractPayData_regex()', () => {
   const ParsingRules_Path = './src/regex.rules.json';
 
   describe('happy path', () => {
@@ -45,21 +45,69 @@ describe('regex parsing pay data', () => {
   });
 
   describe('edge cases', () => {
-    it('no taxes in current period', async function no_taxes_current_period() {
-      const payStubContent = getPayStubContent('taxes.no_tax_current_period');
-      const payData = await extractPayData_regex({
-        ...({ payDataRegexParsingRules: ParsingRules_Path } as AppParams),
-        parsedPdfData: { text: payStubContent },
-      });
-      expect(payData.taxes).toEqual({
-        period: PayDataContent.taxes.no_tax_current_period.period,
-        ytd: PayDataContent.taxes.no_tax_current_period.ytd,
+    describe('pay data parsing', () => {
+      it('no taxes in current period', async function no_taxes_current_period() {
+        const payStubContent = getPayStubContent('taxes.no_tax_current_period');
+        const payData = await extractPayData_regex({
+          ...({ payDataRegexParsingRules: ParsingRules_Path } as AppParams),
+          parsedPdfData: { text: payStubContent },
+        });
+        expect(payData.taxes).toEqual({
+          period: PayDataContent.taxes.no_tax_current_period.period,
+          ytd: PayDataContent.taxes.no_tax_current_period.ytd,
+        });
       });
     });
-  });
 
-  it('should add numbers correctly', () => {
-    expect(1 + 1).toBe(2);
+    describe('regex parsing rules', () => {
+      describe('getParsingRules()', () => {
+        it('throws error if no rules provided', async function no_rules_provided() {
+          const payStubContent = getPayStubContent('');
+          await expect(
+            extractPayData_regex({
+              ...({ payDataRegexParsingRules: ' ' } as AppParams),
+              parsedPdfData: { text: payStubContent },
+            })
+          ).rejects.toThrow('Cannot parse pay data. No parsing rules provided.');
+        });
+
+        it('throws error if non-string rules provided', async function no_rules_provided() {
+          const payStubContent = getPayStubContent('');
+          await expect(
+            extractPayData_regex({
+              ...({ payDataRegexParsingRules: 7 } as unknown as AppParams),
+              parsedPdfData: { text: payStubContent },
+            })
+          ).rejects.toThrow('Cannot parse pay data. No parsing rules provided.');
+        });
+
+        it('throws error if reading the rules file fails', async function file_reading_fails() {
+          vi.clearAllMocks();
+          const fileModule = await import('../../io/file.io.ts');
+          vi.spyOn(fileModule.file, 'read').mockRejectedValue(new Error('read failure'));
+
+          const payStubContent = getPayStubContent('');
+          await expect(
+            extractPayData_regex({
+              ...({ payDataRegexParsingRules: ParsingRules_Path } as AppParams),
+              parsedPdfData: { text: payStubContent },
+            })
+          ).rejects.toThrow(`Error reading parsing rules. file:[${ParsingRules_Path}] reason: read failure`);
+        });
+
+        it('throws error if rules are not valid JSON', async function file_reading_fails() {
+          const payStubContent = getPayStubContent('');
+          await expect(
+            extractPayData_regex({
+              ...({ payDataRegexParsingRules: 'bad rules' } as AppParams),
+              parsedPdfData: { text: payStubContent },
+            })
+          ).rejects.toThrow(
+            `Error parsing JSON from rules. rules:[bad rules] reason:Unexpected token 'b', "bad rules" is not valid JSON`
+          );
+        });
+      });
+    });
   });
 });
 

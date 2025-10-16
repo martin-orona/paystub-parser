@@ -1,5 +1,12 @@
 import { parseArgs } from 'node:util';
-import type { AppParams, PdfParserType, PayDataParserType, UIParams, UIParamKeys, UIParamValueTypes } from '../types';
+import type {
+  AppParams,
+  PdfParserType,
+  PayDataParserType,
+  UIParams,
+  UIParamKeys,
+  UIParamValueTypes,
+} from '../types.ts';
 
 export function parseArguments(): AppParams {
   const uiArgs = getArgs();
@@ -22,7 +29,6 @@ function getArgs(): UIParams {
       'pdf-parser-type': { type: 'string', default: 'pdf-parse' },
       'pay-data-parser-type': { type: 'string', default: 'regex' },
       'pay-data-regex-parsing-rules': { type: 'string', default: '' },
-      // output: { type: 'string', short: 'o', default: 'output.json' },
       output: { type: 'string', short: 'o', default: 'output.xls' },
       verbose: { type: 'boolean', short: 'v', default: false },
     },
@@ -32,7 +38,7 @@ function getArgs(): UIParams {
 
 function validateArgs(args: UIParams) {
   validateValueInList(args, 'pdf-parser-type', ['pdf-parse', 'pdfjs']);
-  validateValueInList(args, 'pay-data-parser-type', ['regex', 'position-index']);
+  validateValueInList(args, 'pay-data-parser-type', ['regex']);
   validateRegexParserRules(args);
   return true;
 
