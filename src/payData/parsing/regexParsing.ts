@@ -364,7 +364,7 @@ function findTableContent({
   tableHeader: string;
   nextTableHeader: string;
 }): string {
-  const pattern = buildRegexPattern({
+  const patternInput: RegexValuePattern = {
     join_type: 'none',
     values: [
       payDataStartMarker,
@@ -375,8 +375,10 @@ function findTableContent({
       ],
       ')',
       ['(?<next_table_header>', nextTableHeader, ')'],
-    ] as (string | RegexCustomPattern)[],
-  }) as string;
+    ],
+  };
+
+  const pattern = buildRegexPattern(patternInput);
 
   const tableContent = findData({
     content,

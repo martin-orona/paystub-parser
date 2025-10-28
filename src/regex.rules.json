@@ -142,7 +142,7 @@
           "|",
           "^(?<ytd_only>{{MoneyValue}})",
           "|",
-          "No Deductions(?<no_deductions>\\W|)",
+          "No Deductions(?:(?<no_deductions>)\\W)",
           ")"
         ]
       }

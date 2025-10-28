@@ -57,6 +57,68 @@ describe('extractPayData_regex()', () => {
           ytd: PayDataContent.taxes.no_tax_current_period.ytd,
         });
       });
+
+      it('no deductions in current period', async function no_deductions_current_period() {
+        const payStubContent = getPayStubContent('deductions.no_deductions_current_period');
+
+        const payData = await extractPayData_regex({
+          ...({ payDataRegexParsingRules: ParsingRules_Path } as AppParams),
+          parsedPdfData: { text: payStubContent },
+        });
+        expect(payData.deductions).toEqual({
+          period: PayDataContent.deductions.no_deductions_current_period?.period,
+          ytd: PayDataContent.deductions.no_deductions_current_period?.ytd,
+        });
+      });
+
+      it('match not found 0', async function match_not_found() {
+        const payStubContent = getPayStubContent('check.match_not_found');
+
+        const payData = await extractPayData_regex({
+          ...({ payDataRegexParsingRules: ParsingRules_Path } as AppParams),
+          parsedPdfData: { text: payStubContent },
+        });
+        expect(payData.deductions).toEqual({
+          period: PayDataContent.deductions.no_deductions_current_period?.period,
+          ytd: PayDataContent.deductions.no_deductions_current_period?.ytd,
+        });
+      });
+
+      it('match not found', async function match_not_found() {
+        const payStubContent = getPayStubContent('check.match_not_found');
+
+        await expect(
+          extractPayData_regex({
+            ...({ payDataRegexParsingRules: ParsingRules_Path } as AppParams),
+            parsedPdfData: { text: payStubContent },
+          })
+        ).rejects
+          .toThrowError(`Unable to extract pay data. group:[checkNumber] regex:[/Voucher Number.*?(?<checkNumber>\\w+).*?Net Pay.*?(?<netPay>\\-?\\b\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2}){0,1}\\b).*?Total Hours Worked.*?(?<hoursWorked>\\-?\\b\\d+(?:\\.\\d{2,4}\\b)?).*?Fed Taxable Income.*?(?<fedTaxIncome>\\-?\\b\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2}){0,1}\\b).*?Check Date.*?(?<checkDate>\\b\\w+ \\d{1,2}, \\d{4}\\b).*?Period Beginning.*?(?<payPeriodStart>\\b\\w+ \\d{1,2}, \\d{4}\\b).*?Salary \\| \\$?(?<salary>\\-?\\b\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2}){0,1}\\b|).*?Period Ending.*?(?<payPeriodEnd>\\b\\w+ \\d{1,2}, \\d{4}\\b)/ims] content:[Earnings Statement
+this should not get matched
+
+]`);
+      });
+
+      it('data table not found', async function data_table_not_found() {
+        const contentList = [
+          PayDataDefaults.documentHeader.text,
+          PayDataContent.check.data_table_not_found.text,
+          PayDataDefaults.documentFooter.text,
+        ];
+        const payStubContent = contentList.join('\n');
+
+        await expect(
+          extractPayData_regex({
+            ...({ payDataRegexParsingRules: ParsingRules_Path } as AppParams),
+            parsedPdfData: { text: payStubContent },
+          })
+        ).rejects
+          .toThrowError(`Unable to extract pay data. group:[table] regex:[/(?<doc_header>Non Negotiable - This is not a check - Non Negotiable.*?)(?<table>(?<table_header>Earnings Statement)(?<desired_values>.*))(?<next_table_header>Taxes \\| Amount \\| YTD)/ims] content:[Non Negotiable - This is not a check - Non Negotiable
+this table will not be found
+this doesn not matter
+
+This is the end of the document.]`);
+      });
     });
 
     describe('regex parsing rules', () => {
@@ -171,6 +233,32 @@ Location | Home.ID | Fed Filing Status | S+ $777 | Period Beginning | July 1, 77
 Salary | $7,777.77 | State Filing Status | S-0 | Period Ending | July 14, 7777
 `,
     },
+    match_not_found: {
+      checkDate: 'July 7, 7777',
+      checkNumber: '7777',
+      fedTaxIncome: '7,777.77',
+      hoursWorked: '77.77',
+      netPay: '7,777.77',
+      payPeriodStart: 'July 1, 7777',
+      payPeriodEnd: 'July 14, 7777',
+      salary: '7,777.77',
+      text: `Earnings Statement
+this should not get matched
+`,
+    },
+    data_table_not_found: {
+      checkDate: 'July 7, 7777',
+      checkNumber: '7777',
+      fedTaxIncome: '7,777.77',
+      hoursWorked: '77.77',
+      netPay: '7,777.77',
+      payPeriodStart: 'July 1, 7777',
+      payPeriodEnd: 'July 14, 7777',
+      salary: '7,777.77',
+      text: `this table will not be found
+this doesn not matter
+`,
+    },
   },
   grossEarnings: {
     default: {
@@ -228,6 +316,13 @@ GROUP TERM LIFE CALCULA | 55.55 | 55.55
 MEDICAL INS | 55.55 | 555.55
 Vol Employee Life | 55.55 | 55.55
 Deductions | 77.77 | 777.77
+`,
+    },
+    no_deductions_current_period: {
+      period: '',
+      ytd: '',
+      text: `Deductions | Amount | YTD
+No Deductions
 `,
     },
   },
